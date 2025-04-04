@@ -50,25 +50,32 @@ struct tcpheader {
     u_short tcp_urp;                 /* urgent pointer */
 };
 
-void packet_capture(u_char *args, const struct pcap_pkthdr *header, const u_char *packet){
-
+void packet_capture(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
+    // 1. 이더넷 헤더
     struct ethheader *eth = (struct ethheader *)packet;
-    struct ipheader *ip = (struct ipheader *)(packet + sizeof(struct ethheader));
-    struct tcpheader *tcp = (struct tcpheader *)(packet + sizeof(struct ethheader) + ip->iph_ihl * 4);
-    
-    // Ethernet 정보 출력
-    printf("Source MAC = %s\n", ether_ntoa((struct ether_addr *)eth->ether_shost));
-    printf("Destination MAC = %s\n", ether_ntoa((struct ether_addr *)eth->ether_dhost));
+    // EtherType가 0x0800(IP)인지 확인
+    if (ntohs(eth->ether_type) == 0x0800) {
+        // 2. IP 헤더
+        struct ipheader *ip = (struct ipheader *)(packet + sizeof(struct ethheader));
 
-    // IP 정보 출력
-    printf("Source IP = %s\n", inet_ntoa(ip->iph_sourceip));
-    printf("Destination IP = %s\n", inet_ntoa(ip->iph_destip));
+        // IP가 TCP인지 확인 (프로토콜 번호가 6이면 TCP)
+        if (ip->iph_protocol == IPPROTO_TCP) {
+            // 3. TCP 헤더
+            unsigned int ip_header_len = ip->iph_ihl * 4;
+            struct tcpheader *tcp = (struct tcpheader *)(packet + sizeof(struct ethheader) + ip_header_len);
 
-    // TCP 포트 정보 출력
-    printf("Source Port = %d\n", ntohs(tcp->tcp_sport));
-    printf("Destination Port = %d\n", ntohs(tcp->tcp_dport));
+            // 여기서부터 MAC/IP/TCP 정보를 안전하게 출력
+            printf("Source MAC = %s\n", ether_ntoa((struct ether_addr *)eth->ether_shost));
+            printf("Destination MAC = %s\n", ether_ntoa((struct ether_addr *)eth->ether_dhost));
 
-    printf("\n");
+            printf("Source IP = %s\n", inet_ntoa(ip->iph_sourceip));
+            printf("Destination IP = %s\n", inet_ntoa(ip->iph_destip));
+
+            printf("Source Port = %d\n", ntohs(tcp->tcp_sport));
+            printf("Destination Port = %d\n", ntohs(tcp->tcp_dport));
+            printf("\n");
+        }
+    }
 }
 
 int main(){
