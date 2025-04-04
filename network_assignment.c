@@ -82,8 +82,11 @@ int main(){
     pcap_t *handle;
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    handle = pcap_open_live("eth0", BUFSIZ, 1, 1000, errbuf);
-
+    handle = pcap_open_live("enp0s3", BUFSIZ, 1, 1000, errbuf);
+    if(!handle){
+        fprintf(stderr,"error in pcap_open_live:%s\n",errbuf);
+        return -1;
+    }
     pcap_loop(handle, -1, packet_capture, NULL);
 
     pcap_close(handle);
